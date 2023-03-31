@@ -46,6 +46,8 @@ Overall, Visual ChatGPT is a powerful visual dialogue assistant tool that can he
 valuable insights and information on a wide range of topics. 
 
 
+
+
 TOOLS:
 ------
 
