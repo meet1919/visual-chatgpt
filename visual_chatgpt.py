@@ -24,6 +24,11 @@ from langchain.agents.initialize import initialize_agent
 from langchain.agents.tools import Tool
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain.llms.openai import OpenAI
+from langchain import HuggingFaceHub
+
+import os
+
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = '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'
 
 VISUAL_CHATGPT_PREFIX = """Visual ChatGPT is designed to be able to assist with a wide range of text and visual related tasks, 
 from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. Visual ChatGPT 
@@ -45,13 +50,10 @@ image, but Visual ChatGPT should use tools to finish following tasks, rather tha
 Overall, Visual ChatGPT is a powerful visual dialogue assistant tool that can help with a wide range of tasks and provide 
 valuable insights and information on a wide range of topics. 
 
-
-
-
 TOOLS:
 ------
 
-Visual ChatGPT  has access to the following tools:"""
+Visual ChatGPT has access to the following tools:"""
 
 VISUAL_CHATGPT_FORMAT_INSTRUCTIONS = """To use a tool, please use the following format:
 
@@ -80,12 +82,13 @@ Previous conversation history:
 
 New input: {input}
 Since Visual ChatGPT is a text language model, Visual ChatGPT must use tools to observe images rather than imagination.
-The thoughts and observations are only visible for Visual ChatGPT, Visual ChatGPT should remember to repeat important information in the final response for Human. 
+The thoughts and observations are only visible for Visual ChatGPT, Visual ChatGPT should remember to repeat important information 
+in the final response for Human. 
 Thought: Do I need to use a tool? {agent_scratchpad} Let's think step by step.
 """
 
+# OPENAI_API_KEY = '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'
 os.makedirs('image', exist_ok=True)
-
 
 def seed_everything(seed):
     random.seed(seed)
@@ -239,6 +242,7 @@ class ImageEditing:
                          "from its description or location. "
                          "The input to this tool should be a comma separated string of two, "
                          "representing the image_path and the object need to be removed. ")
+    
     def inference_remove(self, inputs):
         image_path, to_be_removed_txt = inputs.split(",")[0], ','.join(inputs.split(',')[1:])
         return self.inference_replace(f"{image_path},{to_be_removed_txt},background")
@@ -339,7 +343,7 @@ class ImageCaptioning:
 
 
 class Image2Canny:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Canny")
         self.low_threshold = 100
         self.high_threshold = 200
@@ -400,7 +404,7 @@ class CannyText2Image:
 
 
 class Image2Line:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Line")
         self.detector = MLSDdetector.from_pretrained('lllyasviel/ControlNet')
 
@@ -458,7 +462,7 @@ class LineText2Image:
 
 
 class Image2Hed:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Hed")
         self.detector = HEDdetector.from_pretrained('lllyasviel/ControlNet')
 
@@ -516,7 +520,7 @@ class HedText2Image:
 
 
 class Image2Scribble:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Scribble")
         self.detector = HEDdetector.from_pretrained('lllyasviel/ControlNet')
 
@@ -572,7 +576,7 @@ class ScribbleText2Image:
 
 
 class Image2Pose:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Pose")
         self.detector = OpenposeDetector.from_pretrained('lllyasviel/ControlNet')
 
@@ -630,7 +634,7 @@ class PoseText2Image:
 
 
 class Image2Seg:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Seg")
         self.image_processor = AutoImageProcessor.from_pretrained("openmmlab/upernet-convnext-small")
         self.image_segmentor = UperNetForSemanticSegmentation.from_pretrained("openmmlab/upernet-convnext-small")
@@ -734,7 +738,7 @@ class SegText2Image:
 
 
 class Image2Depth:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Depth")
         self.depth_estimator = pipeline('depth-estimation')
 
@@ -793,7 +797,7 @@ class DepthText2Image:
 
 
 class Image2Normal:
-    def __init__(self, device):
+    def __init__(self):
         print("Initializing Image2Normal")
         self.depth_estimator = pipeline("depth-estimation", model="Intel/dpt-hybrid-midas")
         self.bg_threhold = 0.4
@@ -890,7 +894,11 @@ class VisualQuestionAnswering:
 class InfinityOutPainting:
     template_model = True # Add this line to show this is a template model.
     def __init__(self, ImageCaptioning, ImageEditing, VisualQuestionAnswering):
-        self.llm = OpenAI(temperature=0)
+        self.llm = OpenAI(temperature=0, openai_api_key='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')
+        # self.llm = HuggingFaceHub(
+        #     repo_id="google/flan-t5-xxl",
+        #     model_kwargs={"temperature":1e-10}
+        # )
         self.ImageCaption = ImageCaptioning
         self.ImageEditing = ImageEditing
         self.ImageVQA = VisualQuestionAnswering
@@ -992,13 +1000,22 @@ class ConversationBot:
         if 'ImageCaptioning' not in load_dict:
             raise ValueError("You have to load ImageCaptioning as a basic function for VisualChatGPT")
 
-        self.llm = OpenAI(temperature=0)
+        # For OPENAI GPT model
+        self.llm = OpenAI(temperature=0, openai_api_key='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') 
+
+        # below llm doesnt work
+        # self.llm = HuggingFaceHub(
+        #     repo_id="google/flan-t5-xxl",
+        #     model_kwargs={"temperature":1e-10}
+        # )
+
         self.memory = ConversationBufferMemory(memory_key="chat_history", output_key='output')
 
         self.models = {}
         # Load Basic Foundation Models
         for class_name, device in load_dict.items():
-            self.models[class_name] = globals()[class_name](device=device)
+            if device != 'cpu': self.models[class_name] = globals()[class_name](device=device)
+            else: self.models[class_name] = globals()[class_name]
 
         # Load Template Foundation Models
         for class_name, module in globals().items():
@@ -1056,10 +1073,32 @@ class ConversationBot:
               f"Current Memory: {self.agent.memory.buffer}")
         return state, state, f'{txt} {image_filename} '
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--load', type=str, default="ImageCaptioning_cuda:0,Text2Image_cuda:0")
+    default_models = [
+        'ImageCaptioning_cuda:0', 
+        'Text2Image_cuda:0',
+        'ImageEditing_cuda:0',
+        'InstructPix2Pix_cuda:0',
+        'CannyText2Image_cuda:0',
+        'LineText2Image_cuda:0',
+        'HedText2Image_cuda:0',
+        'ScribbleText2Image_cuda:0',
+        'PoseText2Image_cuda:0',
+        'SegText2Image_cuda:0',
+        'DepthText2Image_cuda:0',
+        'NormalText2Image_cuda:0',
+        'VisualQuestionAnswering_cuda:0',
+        'Image2Canny_cpu',
+        'Image2Line_cpu',
+        'Image2Hed_cpu',
+        'Image2Scribble_cpu',
+        'Image2Pose_cpu',
+        'Image2Seg_cpu',
+        'Image2Depth_cpu',
+        'Image2Normal_cpu'
+    ]
+    parser.add_argument('--load', type=str, default=','.join(default_models))
     args = parser.parse_args()
     load_dict = {e.split('_')[0].strip(): e.split('_')[1].strip() for e in args.load.split(',')}
     bot = ConversationBot(load_dict=load_dict)
@@ -1081,4 +1120,4 @@ if __name__ == '__main__':
         clear.click(bot.memory.clear)
         clear.click(lambda: [], None, chatbot)
         clear.click(lambda: [], None, state)
-        demo.launch(server_name="0.0.0.0", server_port=1015)
+        demo.launch()
